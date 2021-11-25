@@ -13,7 +13,8 @@
     "dev": "yarn clean && tsc --watch",
     "test": "TS_NODE_FILES=true mocha -r ts-node/register ./src/**/*.spec.ts",
     "lint": "eslint './src/**/*' './example-app/**/*'",
-    "check:all": "yarn lint && yarn build && yarn test"
+    "check:all": "yarn lint && yarn build && yarn test",
+    "prepare": "yarn clean && yarn build"
   },
   "husky": {
     "hooks": {
