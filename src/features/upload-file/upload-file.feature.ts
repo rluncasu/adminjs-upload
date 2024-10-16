@@ -1,30 +1,32 @@
-import AdminJS, {
-  buildFeature,
-  RecordActionResponse,
-  FeatureType,
-  ListActionResponse,
+import {
   After,
+  buildFeature, FeatureType,
+  ListActionResponse,
+  RecordActionResponse,
 } from 'adminjs'
 
-import { ERROR_MESSAGES } from './constants'
-import { getProvider } from './utils/get-provider'
-import { BaseProvider } from './providers'
-import UploadOptions, { UploadOptionsWithDefault } from './types/upload-options.type'
-import PropertyCustom from './types/property-custom.type'
-import { updateRecordFactory } from './factories/update-record-factory'
-import { fillRecordWithPath } from './utils/fill-record-with-path'
-import { deleteFileFactory } from './factories/delete-file-factory'
-import { deleteFilesFactory } from './factories/delete-files-factory'
-import { stripPayloadFactory } from './factories/strip-payload-factory'
+import { ERROR_MESSAGES } from './constants.js'
+import { deleteFileFactory } from './factories/delete-file-factory.js'
+import { deleteFilesFactory } from './factories/delete-files-factory.js'
+import { stripPayloadFactory } from './factories/strip-payload-factory.js'
+import { updateRecordFactory } from './factories/update-record-factory.js'
+import { BaseProvider } from './providers/index.js'
+import PropertyCustom from './types/property-custom.type.js'
+import UploadOptions, { UploadOptionsWithDefault } from './types/upload-options.type.js'
+import bundleComponent from './utils/bundle-component.js'
+import { fillRecordWithPath } from './utils/fill-record-with-path.js'
+import { getProvider } from './utils/get-provider.js'
 
-export type ProviderOptions = Required<Exclude<UploadOptions['provider'], BaseProvider>>
+export type ProviderOptions = Required<
+  Exclude<UploadOptions['provider'], BaseProvider>
+>;
 
 const DEFAULT_FILE_PROPERTY = 'file'
 const DEFAULT_FILE_PATH_PROPERTY = 'filePath'
 const DEFAULT_FILES_TO_DELETE_PROPERTY = 'filesToDelete'
 
 const uploadFileFeature = (config: UploadOptions): FeatureType => {
-  const { provider: providerOptions, validation, multiple } = config
+  const { componentLoader, provider: providerOptions, validation, multiple } = config
 
   const configWithDefault: UploadOptionsWithDefault = {
     ...config,
@@ -32,7 +34,8 @@ const uploadFileFeature = (config: UploadOptions): FeatureType => {
       ...config.properties,
       file: config.properties?.file || DEFAULT_FILE_PROPERTY,
       filePath: config.properties?.filePath || DEFAULT_FILE_PATH_PROPERTY,
-      filesToDelete: config.properties?.filesToDelete || DEFAULT_FILES_TO_DELETE_PROPERTY,
+      filesToDelete:
+        config.properties?.filesToDelete || DEFAULT_FILES_TO_DELETE_PROPERTY,
     },
   }
 
@@ -48,23 +51,36 @@ const uploadFileFeature = (config: UploadOptions): FeatureType => {
   const deleteFile = deleteFileFactory(configWithDefault, provider)
   const deleteFiles = deleteFilesFactory(configWithDefault, provider)
 
-  const fillPath: After<RecordActionResponse> = async (response, request, context) => {
+  const fillPath: After<RecordActionResponse> = async (
+    response,
+    request,
+    context,
+  ) => {
     const { record } = response
 
     return {
       ...response,
-      record: await fillRecordWithPath(record, context, configWithDefault, provider),
+      record: await fillRecordWithPath(
+        record,
+        context,
+        configWithDefault,
+        provider,
+      ),
     }
   }
 
-  const fillPaths: After<ListActionResponse> = async (response, request, context) => {
+  const fillPaths: After<ListActionResponse> = async (
+    response,
+    request,
+    context,
+  ) => {
     const { records } = response
 
     return {
       ...response,
-      records: await Promise.all(records.map((record) => (
-        fillRecordWithPath(record, context, configWithDefault, provider)
-      ))),
+      records: await Promise.all(
+        records.map((record) => fillRecordWithPath(record, context, configWithDefault, provider)),
+      ),
     }
   }
 
@@ -81,50 +97,51 @@ const uploadFileFeature = (config: UploadOptions): FeatureType => {
     mimeTypes: validation?.mimeTypes,
     maxSize: validation?.maxSize,
     multiple: !!multiple,
+    opts: provider?.opts,
   }
 
-  const uploadFeature = buildFeature({
-    properties: {
-      [properties.file]: {
-        custom,
-        isVisible: { show: true, edit: true, list: true, filter: false },
-        components: {
-          edit: AdminJS.bundle(
-            '../../../src/features/upload-file/components/edit',
-          ),
-          list: AdminJS.bundle(
-            '../../../src/features/upload-file/components/list',
-          ),
-          show: AdminJS.bundle(
-            '../../../src/features/upload-file/components/show',
-          ),
+  const uploadFeature = () => {
+    const editComponent = bundleComponent(componentLoader, 'UploadEditComponent')
+    const listComponent = bundleComponent(componentLoader, 'UploadListComponent')
+    const showComponent = bundleComponent(componentLoader, 'UploadShowComponent')
+    return buildFeature({
+      properties: {
+        [properties.file]: {
+          custom,
+          isVisible: { show: true, edit: true, list: true, filter: false },
+          components: {
+            edit: editComponent,
+            list: listComponent,
+            show: showComponent,
+          },
         },
       },
-    },
-    actions: {
-      show: {
-        after: fillPath,
+      actions: {
+        show: {
+          after: fillPath,
+        },
+        new: {
+          before: stripFileFromPayload,
+          after: [updateRecord, fillPath],
+        },
+        edit: {
+          before: [stripFileFromPayload],
+          after: [updateRecord, fillPath],
+        },
+        delete: {
+          after: deleteFile,
+        },
+        list: {
+          after: fillPaths,
+        },
+        bulkDelete: {
+          after: deleteFiles,
+        },
       },
-      new: {
-        before: stripFileFromPayload,
-        after: [updateRecord, fillPath] },
-      edit: {
-        before: [stripFileFromPayload],
-        after: [updateRecord, fillPath],
-      },
-      delete: {
-        after: deleteFile,
-      },
-      list: {
-        after: fillPaths,
-      },
-      bulkDelete: {
-        after: deleteFiles,
-      },
-    },
-  })
+    })
+  }
 
-  return uploadFeature
+  return uploadFeature()
 }
 
 export default uploadFileFeature

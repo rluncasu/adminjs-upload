@@ -1,8 +1,12 @@
-import { UploadedFile, ActionContext } from 'adminjs'
-import { ERROR_MESSAGES } from '../constants'
+import { ActionContext, UploadedFile } from 'adminjs'
+import { ERROR_MESSAGES } from '../constants.js'
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable class-methods-use-this */
+
+export type ProviderOpts = {
+  baseUrl?: string; // path prefix for local provider
+};
 
 /**
  * @load ./base-provider.doc.md
@@ -25,11 +29,17 @@ abstract class BaseProvider {
   public bucket: string
 
   /**
+   * Provider extra options
+   */
+  public opts?: ProviderOpts
+
+  /**
    * @param { string } bucket     place where files should be stored
    */
-  constructor(bucket: string) {
+  constructor(bucket: string, opts?: ProviderOpts) {
     this.name = 'BaseProvider'
     this.bucket = bucket
+    this.opts = opts || {}
   }
 
   /**
@@ -40,8 +50,14 @@ abstract class BaseProvider {
    * @param {ActionContext} context
    * @abstract
    */
-  public async upload(file: UploadedFile, key: string, context: ActionContext): Promise<any> {
-    throw new Error(ERROR_MESSAGES.METHOD_NOT_IMPLEMENTED('BaseProvider#upload'))
+  public async upload(
+    file: UploadedFile,
+    key: string,
+    context: ActionContext,
+  ): Promise<any> {
+    throw new Error(
+      ERROR_MESSAGES.METHOD_NOT_IMPLEMENTED('BaseProvider#upload'),
+    )
   }
 
   /**
@@ -52,8 +68,14 @@ abstract class BaseProvider {
    * @param {ActionContext} context
    * @abstract
    */
-  public async delete(key: string, bucket: string, context: ActionContext): Promise<any> {
-    throw new Error(ERROR_MESSAGES.METHOD_NOT_IMPLEMENTED('BaseProvider#delete'))
+  public async delete(
+    key: string,
+    bucket: string,
+    context: ActionContext,
+  ): Promise<any> {
+    throw new Error(
+      ERROR_MESSAGES.METHOD_NOT_IMPLEMENTED('BaseProvider#delete'),
+    )
   }
 
   /**
@@ -66,7 +88,11 @@ abstract class BaseProvider {
    * @async
    * @abstract
    */
-  public path(key: string, bucket: string, context: ActionContext): Promise<string> | string {
+  public path(
+    key: string,
+    bucket: string,
+    context: ActionContext,
+  ): Promise<string> | string {
     throw new Error(ERROR_MESSAGES.METHOD_NOT_IMPLEMENTED('BaseProvider#path'))
   }
 }

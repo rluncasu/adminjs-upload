@@ -1,9 +1,31 @@
-import { BaseRecord } from 'adminjs'
-import { AWSOptions } from '../providers/aws-provider'
-import { BaseProvider } from '../providers/base-provider'
-import { LocalUploadOptions } from '../providers/local-provider'
-import { GCPOptions } from '../providers/gcp-provider'
-import { MinIoOptions } from '../providers/minio-provider'
+import { BaseRecord, ComponentLoader } from 'adminjs'
+import { AWSOptions } from '../providers/aws-provider.js'
+import { BaseProvider } from '../providers/base-provider.js'
+import { GCPOptions } from '../providers/gcp-provider.js'
+import { LocalUploadOptions } from '../providers/local-provider.js'
+import { MinIoOptions } from '../providers/minio-provider.js'
+
+/**
+ * Function which defines where in the bucket file should be stored.
+ * If we have 2 uploads in one resource we might need to set them to
+ * - `${record.id()}/upload1/${filename}`
+ * - `${record.id()}/upload2/${filename}`
+ *
+ * By default system uploads files to: `${record.id()}/${filename}`
+ *
+ * @memberof module:@adminjs/upload
+ * @alias UploadPathFunction
+ */
+export type UploadPathFunction = (
+  /**
+   * Record for which file is uploaded
+   */
+  record: BaseRecord,
+  /**
+   * filename with extension
+   */
+  filename: string,
+) => string
 
 /**
  * Configuration options for @adminjs/upload feature
@@ -12,6 +34,10 @@ import { MinIoOptions } from '../providers/minio-provider'
  * @memberof module:@adminjs/upload
  */
 export type UploadOptions = {
+  /**
+   * Your ComponentLoader instance. It is required for the feature to add it's components.
+   */
+  componentLoader: ComponentLoader;
   /**
    * Options for the provider
    */
@@ -99,28 +125,6 @@ export type UploadOptionsWithDefault = {
 export type FeatureInvocation = {
   properties: Partial<UploadOptions['properties']>
 }
-
-/**
- * Function which defines where in the bucket file should be stored.
- * If we have 2 uploads in one resource we might need to set them to
- * - `${record.id()}/upload1/${filename}`
- * - `${record.id()}/upload2/${filename}`
- *
- * By default system uploads files to: `${record.id()}/${filename}`
- *
- * @memberof module:@adminjs/upload
- * @alias UploadPathFunction
- */
-export type UploadPathFunction = (
-  /**
-   * Record for which file is uploaded
-   */
-  record: BaseRecord,
-  /**
-   * filename with extension
-   */
-  filename: string,
-) => string
 
 export type ProviderOptions = Required<Exclude<UploadOptions['provider'], BaseProvider>>
 
